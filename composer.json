@@ -1,0 +1,19 @@
+{
+    "name": "ieu/httpider",
+    "description": "A simple crawler written in PHP",
+    "type": "library",
+    "license": "MIT",
+    "minimum-stability": "stable",
+    "require": {
+        "php": "^7.2",
+        "guzzlehttp/guzzle": "~6.3.3",
+        "symfony/dom-crawler": "~4.3.8",
+        "flow/jsonpath": "~0.4.0",
+        "monolog/monolog": "~2.0.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "Ieu\\Httpider\\": "src/"
+        }
+    }
+}
