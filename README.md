@@ -118,3 +118,62 @@ To parse a JSON response:
 ```php
 $json = $response->json();
 ```
+
+## Examples
+
+### [THE SCRAPINGHUB BLOG](https://blog.scrapinghub.com/)
+
+```php
+class MyCrawler extends \Ieu\Httpider\Crawler
+{
+    public function startPoint()
+    {
+        return "https://blog.scrapinghub.com/";
+    }
+
+    public function parse(\Ieu\Httpider\Response $response)
+    {
+        $dom = $response->html();
+        foreach ($dom->filterXPath('//div[@class="post-item"]') as $item) {
+            $item = new \Ieu\Httpider\Wrapper\Html($item);
+            
+            yield $this->get(
+                $item->filterXPath('//a[@class="more-link"]')->attr('href'),
+                [$this, 'parsePost'],
+                [
+                    'title' => trim($item->filterXPath('//div[@class="post-header"]/h2')->text()),
+                    'date' => trim($item->filterXPath('//span[@class="date"]')->text()),
+                    'author' => trim($item->filterXPath('//span[@class="author"]')->text()),
+                    'comment' => trim($item->filterXPath('//span[@class="custom_listing_comments"]')->text()),
+                    'excerpt' => trim($item->filterXPath('//div[@class="post-content"]/p')->text()),
+                ]
+            );
+        }
+
+        foreach ($dom->filterXPath('//a[@class="next-posts-link"]') as $item) {
+            $item = new \Ieu\Httpider\Wrapper\Html($item);
+            
+            yield $this->get(
+                $item->attr('href'),
+                [$this, 'parse']
+            );
+        }
+
+    }
+
+    public function parsePost(\Ieu\Httpider\Response $response)
+    {
+        return array_merge(
+            $response->getMeta(),
+            [
+                'outlines' => array_map(
+                    function (\DOMElement $v) {
+                        return trim((new \Ieu\Httpider\Wrapper\Html($v))->text());
+                    },
+                    iterator_to_array($response->html()->filterXPath('//div[@class="blog-section"]//h2'))
+                )
+            ]
+        );
+    }
+}
+```
