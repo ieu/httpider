@@ -29,6 +29,11 @@ class MyCrawler extends \Ieu\Httpider\Crawler
     public function startPoint()
     {
         return 'http://www.example.com';
+        // Or return a list of URLs
+        return [
+            'http://www.example.com/page/1',
+            'http://www.example.com/page/2',
+        ];
     }
 
     /**
@@ -47,18 +52,7 @@ $result = (new MyCrawler())->start();
 print_r($result);
 ```
 
-To have multiple start urls, just return an array of string in `startPoint`:
-```php
-public function startPoint()
-{
-    return [
-        'http://www.example.com/page/1',
-        'http://www.example.com/page/2',
-    ];
-}
-```
-
-By default start url is sent using HTTP Get method. To send request with POST, create an `\Ieu\Httpider\Request` instance:
+By default request is sent using HTTP GET method. To send request with POST, create an `\Ieu\Httpider\Request` instance:
 ```php
 public function startPoint()
 {
@@ -77,7 +71,7 @@ public function request(string $method, string $uri, callable $callback = null, 
 }
 ```
 
-To crawl through paginated list:
+To crawl further through multiple elements, paginated list, content page or such, just `yield` a request by calling `get`, `post` or `request`:
 ```php
 class MyCrawler extends \Ieu\Httpider\Crawler
 {
@@ -87,6 +81,7 @@ class MyCrawler extends \Ieu\Httpider\Crawler
         foreach ($response->html()->filterXPath('<XPath to items>') as $item) {
             $item = new \Ieu\Httpider\Wrapper\Html($item);
             $href = $item->filterXPath('<XPath to a element>')->attr('href');
+            // Supply a callback to handle response
             yield $this->get($href, [ $this, 'next' ]);
         }
         
@@ -104,14 +99,28 @@ class MyCrawler extends \Ieu\Httpider\Crawler
 }
 ```
 
-By default, charset is detected firstly from `Content-Type` header, then from meta tag in page. To specify an charset explicitly:
+By default, charset is detected from `Content-Type` in header. If none was found, `UTF-8` would be used. To specify an charset explicitly:
 ```php
 $dom = $response->html('GB2312')
 ```
 
 To pass data through pages:
 ```php
-yield $this->get($href, [ $this, 'next' ], $data);
+class MyCrawler extends \Ieu\Httpider\Crawler
+{
+    public function parse(\Ieu\Httpider\Response $response)
+    {
+        yield $this->get($nextUrl, [ $this, 'parseNext' ], $data);
+        // Or
+        yield $this->get($nextUrl, [ $this, 'parseNext' ])->withMeta($data);
+    }
+    
+    public function next(\Ieu\Httpider\Response $response)
+    {
+        // Get data by calling getMeta
+        $data = $response->getMeta();
+    }
+}
 ```
 
 To parse a JSON response:
